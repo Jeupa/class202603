@@ -1,27 +1,67 @@
-let map = null;
-
-let currentMarker = null;
-let destinationMarker = null;
+let map;
 
 let currentLatitude = null;
 let currentLongitude = null;
 
-let destinationPlaces = [];
+let departureLatitude = null;
+let departureLongitude = null;
+
+let destinationLatitude = null;
+let destinationLongitude = null;
+
+let departureMarker = null;
+let destinationMarker = null;
 
 
-/* -------------------------
-   현재 위치
-------------------------- */
+/* =====================================
+   페이지 시작
+===================================== */
 
-document
-  .getElementById("locationBtn")
-  .addEventListener("click", getLocation);
+window.addEventListener("DOMContentLoaded", function () {
+
+  initializeMap();
+
+  getCurrentLocation(true);
+
+});
 
 
-function getLocation() {
+/* =====================================
+   지도 생성
+===================================== */
+
+function initializeMap() {
+
+  const mapContainer =
+    document.getElementById("map");
+
+
+  const defaultPosition =
+    new kakao.maps.LatLng(
+      37.5665,
+      126.9780
+    );
+
+
+  map = new kakao.maps.Map(
+    mapContainer,
+    {
+      center: defaultPosition,
+      level: 5
+    }
+  );
+
+}
+
+
+/* =====================================
+   현재 위치 가져오기
+===================================== */
+
+function getCurrentLocation(setAsDeparture = false) {
 
   const result =
-    document.getElementById("locationResult");
+    document.getElementById("departureResult");
 
 
   if (!navigator.geolocation) {
@@ -30,16 +70,13 @@ function getLocation() {
       "이 브라우저에서는 위치 정보를 사용할 수 없습니다.";
 
     return;
+
   }
-
-
-  result.innerHTML =
-    "📍 현재 위치를 확인하고 있습니다...";
 
 
   navigator.geolocation.getCurrentPosition(
 
-    function(position) {
+    function (position) {
 
       currentLatitude =
         position.coords.latitude;
@@ -48,24 +85,41 @@ function getLocation() {
         position.coords.longitude;
 
 
-      result.innerHTML = `
-        <strong>현재 위치 확인 완료</strong><br>
-        위도 : ${currentLatitude.toFixed(6)}<br>
-        경도 : ${currentLongitude.toFixed(6)}
-      `;
+      const currentPosition =
+        new kakao.maps.LatLng(
+          currentLatitude,
+          currentLongitude
+        );
 
 
-      showCurrentLocation();
+      /* 페이지 시작 시
+         지도 중심을 현재 위치로 이동
+      */
+
+      map.setCenter(currentPosition);
+
+      map.setLevel(3);
+
+
+      if (setAsDeparture) {
+
+        setDeparture(
+          currentLatitude,
+          currentLongitude,
+          "현재 위치"
+        );
+
+      }
 
     },
 
 
-    function(error) {
+    function (error) {
 
       console.error(error);
 
       result.innerHTML =
-        "현재 위치를 가져오지 못했습니다.";
+        "현재 위치를 확인할 수 없습니다.";
 
     },
 
@@ -81,104 +135,111 @@ function getLocation() {
 }
 
 
+/* =====================================
+   현재 위치 버튼
+===================================== */
 
-/* -------------------------
-   지도
-------------------------- */
+document
+  .getElementById("currentLocationBtn")
+  .addEventListener(
+    "click",
+    function () {
 
-function showCurrentLocation() {
+      if (
+        currentLatitude !== null &&
+        currentLongitude !== null
+      ) {
 
-  const mapContainer =
-    document.getElementById("map");
+        setDeparture(
+          currentLatitude,
+          currentLongitude,
+          "현재 위치"
+        );
 
+      }
 
-  mapContainer.style.display = "block";
+      else {
 
+        getCurrentLocation(true);
 
-  const position =
-    new kakao.maps.LatLng(
-      currentLatitude,
-      currentLongitude
-    );
+      }
 
-
-  // 지도가 아직 없으면 생성
-  if (!map) {
-
-    const mapOption = {
-
-      center: position,
-
-      level: 3
-
-    };
+    }
+  );
 
 
-    map =
-      new kakao.maps.Map(
-        mapContainer,
-        mapOption
-      );
+/* =====================================
+   출발지 검색
+===================================== */
 
+document
+  .getElementById("departureSearchBtn")
+  .addEventListener(
+    "click",
+    searchDeparture
+  );
+
+
+document
+  .getElementById("departureInput")
+  .addEventListener(
+    "keydown",
+    function (event) {
+
+      if (event.key === "Enter") {
+        searchDeparture();
+      }
+
+    }
+  );
+
+
+function searchDeparture() {
+
+  const keyword =
+    document
+      .getElementById("departureInput")
+      .value
+      .trim();
+
+
+  if (!keyword) {
+    return;
   }
 
 
-  map.setCenter(position);
-
-
-  // 기존 현재 위치 마커 제거
-  if (currentMarker) {
-    currentMarker.setMap(null);
-  }
-
-
-  currentMarker =
-    new kakao.maps.Marker({
-
-      map: map,
-
-      position: position
-
-    });
-
-
-  const infoWindow =
-    new kakao.maps.InfoWindow({
-
-      content:
-        '<div style="padding:7px;width:110px;text-align:center;">현재 위치</div>'
-
-    });
-
-
-  infoWindow.open(
-    map,
-    currentMarker
+  searchPlace(
+    keyword,
+    "departure"
   );
 
 }
 
 
-
-/* -------------------------
+/* =====================================
    목적지 검색
-------------------------- */
+===================================== */
 
 document
-  .getElementById("searchBtn")
-  .addEventListener("click", searchDestination);
+  .getElementById("destinationSearchBtn")
+  .addEventListener(
+    "click",
+    searchDestination
+  );
 
 
 document
   .getElementById("destinationInput")
-  .addEventListener("keydown", function(event) {
+  .addEventListener(
+    "keydown",
+    function (event) {
 
-    if (event.key === "Enter") {
-      searchDestination();
+      if (event.key === "Enter") {
+        searchDestination();
+      }
+
     }
-
-  });
-
+  );
 
 
 function searchDestination() {
@@ -190,24 +251,24 @@ function searchDestination() {
       .trim();
 
 
-  const result =
-    document.getElementById(
-      "destinationResult"
-    );
-
-
   if (!keyword) {
-
-    result.innerHTML =
-      "검색어를 입력해주세요.";
-
     return;
   }
 
 
-  result.innerHTML =
-    "🔎 장소를 검색하고 있습니다...";
+  searchPlace(
+    keyword,
+    "destination"
+  );
 
+}
+
+
+/* =====================================
+   카카오 장소 검색
+===================================== */
+
+function searchPlace(keyword, type) {
 
   const places =
     new kakao.maps.services.Places();
@@ -215,178 +276,200 @@ function searchDestination() {
 
   places.keywordSearch(
     keyword,
-    placesSearchCallback
+
+    function (data, status) {
+
+      if (
+        status ===
+        kakao.maps.services.Status.OK
+      ) {
+
+        showSearchResults(
+          data.slice(0, 10),
+          type
+        );
+
+      }
+
+      else {
+
+        showNoResult(type);
+
+      }
+
+    }
   );
 
 }
 
 
+/* =====================================
+   자동완성 목록 표시
+===================================== */
 
-/* -------------------------
-   검색 결과
-------------------------- */
+function showSearchResults(
+  places,
+  type
+) {
 
-function placesSearchCallback(data, status) {
+  const containerId =
+    type === "departure"
+      ? "departureSearchResults"
+      : "destinationSearchResults";
 
-  const select =
+
+  const container =
     document.getElementById(
-      "destinationSelect"
+      containerId
     );
 
 
-  const result =
-    document.getElementById(
-      "destinationResult"
-    );
+  container.innerHTML = "";
 
 
-  select.innerHTML =
-    '<option value="">검색 결과를 선택하세요</option>';
+  places.forEach(
+    function (place) {
+
+      const item =
+        document.createElement("div");
 
 
-  if (
-    status !==
-    kakao.maps.services.Status.OK
-  ) {
-
-    result.innerHTML =
-      "검색 결과가 없습니다.";
-
-    return;
-  }
+      item.className =
+        "search-result-item";
 
 
-  destinationPlaces = data;
+      const address =
+        place.road_address_name ||
+        place.address_name;
 
 
-  // 너무 많은 후보가 나오지 않도록
-  // 상위 10개만 표시
-  data.slice(0, 10).forEach(
-    function(place, index) {
+      item.innerHTML = `
+        <div class="place-name">
+          ${place.place_name}
+        </div>
 
-      const option =
-        document.createElement("option");
-
-
-      option.value = index;
-
-
-      let text =
-        place.place_name;
+        <div class="place-address">
+          ${address}
+        </div>
+      `;
 
 
-      if (place.road_address_name) {
+      item.addEventListener(
+        "click",
+        function () {
 
-        text +=
-          " - " +
-          place.road_address_name;
+          const latitude =
+            Number(place.y);
 
-      }
-
-      else if (place.address_name) {
-
-        text +=
-          " - " +
-          place.address_name;
-
-      }
+          const longitude =
+            Number(place.x);
 
 
-      option.textContent =
-        text;
+          if (type === "departure") {
+
+            setDeparture(
+              latitude,
+              longitude,
+              place.place_name,
+              address
+            );
 
 
-      select.appendChild(option);
+            document
+              .getElementById(
+                "departureInput"
+              )
+              .value =
+              place.place_name;
+
+          }
+
+          else {
+
+            setDestination(
+              latitude,
+              longitude,
+              place.place_name,
+              address
+            );
+
+
+            document
+              .getElementById(
+                "destinationInput"
+              )
+              .value =
+              place.place_name;
+
+          }
+
+
+          container.style.display =
+            "none";
+
+        }
+      );
+
+
+      container.appendChild(item);
 
     }
   );
 
 
-  result.innerHTML =
-    `${Math.min(data.length, 10)}개의 후보를 찾았습니다.`;
+  container.style.display =
+    "block";
 
 }
 
 
+/* =====================================
+   검색 결과 없음
+===================================== */
 
-/* -------------------------
-   목적지 선택
-------------------------- */
+function showNoResult(type) {
 
-document
-  .getElementById("destinationSelect")
-  .addEventListener(
-    "change",
-    selectDestination
-  );
+  const containerId =
+    type === "departure"
+      ? "departureSearchResults"
+      : "destinationSearchResults";
 
 
-function selectDestination() {
-
-  const select =
+  const container =
     document.getElementById(
-      "destinationSelect"
+      containerId
     );
 
 
-  const index =
-    select.value;
-
-
-  if (index === "") {
-    return;
-  }
-
-
-  const place =
-    destinationPlaces[index];
-
-
-  const latitude =
-    Number(place.y);
-
-  const longitude =
-    Number(place.x);
-
-
-  const result =
-    document.getElementById(
-      "destinationResult"
-    );
-
-
-  result.innerHTML = `
-    <strong>${place.place_name}</strong><br>
-    ${place.road_address_name || place.address_name}
+  container.innerHTML = `
+    <div class="search-result-item">
+      검색 결과가 없습니다.
+    </div>
   `;
 
 
-  showDestination(
-    latitude,
-    longitude,
-    place.place_name
-  );
+  container.style.display =
+    "block";
 
 }
 
 
+/* =====================================
+   출발지 선택
+===================================== */
 
-/* -------------------------
-   목적지 지도 표시
-------------------------- */
-
-function showDestination(
+function setDeparture(
   latitude,
   longitude,
-  name
+  name,
+  address = ""
 ) {
 
-  const mapContainer =
-    document.getElementById("map");
+  departureLatitude =
+    latitude;
 
-
-  mapContainer.style.display =
-    "block";
+  departureLongitude =
+    longitude;
 
 
   const position =
@@ -396,27 +479,67 @@ function showDestination(
     );
 
 
-  // 현재 위치 확인 전이라도
-  // 목적지는 지도에 표시 가능
-  if (!map) {
-
-    map =
-      new kakao.maps.Map(
-        mapContainer,
-        {
-          center: position,
-          level: 4
-        }
-      );
-
+  if (departureMarker) {
+    departureMarker.setMap(null);
   }
 
 
-  // 기존 목적지 마커 삭제
+  departureMarker =
+    new kakao.maps.Marker({
+
+      map: map,
+
+      position: position
+
+    });
+
+
+  document
+    .getElementById(
+      "departureResult"
+    )
+    .innerHTML = `
+      <strong>${name}</strong>
+      ${
+        address
+        ? "<br>" + address
+        : ""
+      }
+    `;
+
+
+  updateMapBounds();
+
+}
+
+
+/* =====================================
+   목적지 선택
+===================================== */
+
+function setDestination(
+  latitude,
+  longitude,
+  name,
+  address = ""
+) {
+
+  destinationLatitude =
+    latitude;
+
+  destinationLongitude =
+    longitude;
+
+
+  const position =
+    new kakao.maps.LatLng(
+      latitude,
+      longitude
+    );
+
+
   if (destinationMarker) {
-
     destinationMarker.setMap(null);
-
   }
 
 
@@ -430,29 +553,34 @@ function showDestination(
     });
 
 
-  const infoWindow =
-    new kakao.maps.InfoWindow({
+  document
+    .getElementById(
+      "destinationResult"
+    )
+    .innerHTML = `
+      <strong>${name}</strong>
+      ${
+        address
+        ? "<br>" + address
+        : ""
+      }
+    `;
 
-      content:
-        `<div style="padding:7px;width:140px;text-align:center;">🎯 ${name}</div>`
 
-    });
+  updateMapBounds();
 
-
-  infoWindow.open(
-    map,
-    destinationMarker
-  );
+}
 
 
-  /*
-   현재위치 + 목적지가 모두 있으면
-   두 지점이 지도에 함께 보이도록 조정
-  */
+/* =====================================
+   출발지 + 목적지 지도에 같이 표시
+===================================== */
+
+function updateMapBounds() {
 
   if (
-    currentLatitude !== null &&
-    currentLongitude !== null
+    departureLatitude !== null &&
+    destinationLatitude !== null
   ) {
 
     const bounds =
@@ -461,22 +589,47 @@ function showDestination(
 
     bounds.extend(
       new kakao.maps.LatLng(
-        currentLatitude,
-        currentLongitude
+        departureLatitude,
+        departureLongitude
       )
     );
 
 
-    bounds.extend(position);
+    bounds.extend(
+      new kakao.maps.LatLng(
+        destinationLatitude,
+        destinationLongitude
+      )
+    );
 
 
     map.setBounds(bounds);
 
   }
 
-  else {
+  else if (
+    departureLatitude !== null
+  ) {
 
-    map.setCenter(position);
+    map.setCenter(
+      new kakao.maps.LatLng(
+        departureLatitude,
+        departureLongitude
+      )
+    );
+
+  }
+
+  else if (
+    destinationLatitude !== null
+  ) {
+
+    map.setCenter(
+      new kakao.maps.LatLng(
+        destinationLatitude,
+        destinationLongitude
+      )
+    );
 
   }
 
