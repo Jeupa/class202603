@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AI 외출 도우미</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- 카카오 지도 SDK -->
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=acf4c676e9ba77bfcad6abc05c23a9ee"></script>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>🚶 AI 외출 도우미</h1>
+
+    <p class="description">
+      현재 위치에서 목적지까지 가장 편리한 이동 방법을 찾아드립니다.
+    </p>
+
+    <button id="locationBtn">
+      📍 현재 위치 확인
+    </button>
+
+    <div id="locationResult">
+      현재 위치를 확인해주세요.
+    </div>
+
+    <div id="map"></div>
+
+  </div>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
