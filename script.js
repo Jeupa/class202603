@@ -106,7 +106,7 @@ function getCurrentLocation(setAsDeparture = false) {
         setDeparture(
           currentLatitude,
           currentLongitude,
-          "현재 위치"
+          "현재 위치로 출발지 설정"
         );
 
       }
